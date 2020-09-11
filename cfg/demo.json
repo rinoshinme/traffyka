@@ -1,0 +1,25 @@
+{
+    "vehicle": {
+        "type": "onnx",
+        "model_path": "model_data/yolo_vehicle.onnx",
+        "image_size": 608,
+        "label_file": "model_data/vehicle.names"
+    },
+
+    "person": {
+
+    },
+
+    "sign": {
+
+    },
+    
+    "mot_tracker": {
+        "type": "sort"
+    },
+
+    "sot_tracker": {
+        "type": "kcf"
+    }
+    
+}
