@@ -1,3 +1,10 @@
 __pycache__/
-*.onnx
 samples/
+
+# deep learning model weights
+*.onnx
+*.ckpt
+*.weights
+*.pb
+*.pt
+*.caffemodel

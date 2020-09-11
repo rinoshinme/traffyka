@@ -76,6 +76,6 @@ class SortTester(object):
 
 if __name__ == '__main__':
     tester = SortTester()
-    filepath = '../samples/det.txt'
+    filepath = '../../samples/det.txt'
     # tester.test_sort(filepath)
     tester.test_sort_with_labels(filepath)

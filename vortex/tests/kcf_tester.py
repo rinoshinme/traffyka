@@ -98,6 +98,6 @@ class KCFTrackingTester(object):
 
         
 if __name__ == '__main__':
-    video_path = '../samples/zhroad_surveillance.avi'
+    video_path = '../../samples/zhroad_surveillance.avi'
     tester = KCFTrackingTester()
     tester.test_video(video_path, start_frame=0)

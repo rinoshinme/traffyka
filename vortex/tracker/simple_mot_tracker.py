@@ -20,7 +20,7 @@ class TrackerObject(object):
 	}
     count = 0
     def __init__(self, init_box, init_frame, tracker_type='kcf'):
-        self.tracker = TrackerObject.OPENCV_OBJECT_TRACKERS[self.tracker_type]()
+        self.tracker = TrackerObject.OPENCV_OBJECT_TRACKERS[tracker_type]()
         self.init_tracker(init_box, init_frame)
         self.id = TrackerObject.count
         TrackerObject.count += 1
@@ -31,7 +31,8 @@ class TrackerObject(object):
         self.time_since_update = 0
 
     def update(self, frame):
-        self.box = self.xywh2minmax(self.tracker.update(frame))
+        _, box = self.tracker.update(frame)
+        self.box = self.xywh2minmax(box)
         self.time_since_update += 1
     
     def update_with_box(self, box, frame):
@@ -44,10 +45,10 @@ class TrackerObject(object):
         self.init_tracker(box, frame)
 
     def minmax2xywh(self, box):
-        return [box[0], box[1], box[2] - box[0], box[3] - box[1]]
+        return (box[0], box[1], box[2] - box[0], box[3] - box[1])
 
-    def xywhwminmax(self, box):
-        return [box[0], box[1], box[0] + box[2], box[1] + box[3]]
+    def xywh2minmax(self, box):
+        return (box[0], box[1], box[0] + box[2], box[1] + box[3])
     
     def get_bbox(self):
         return self.box
@@ -57,7 +58,7 @@ class SimpleMotTracker(object):
     """
     or SMT for short.
     """
-    def __init__(self, max_age=5, iou_threshold=0.3):
+    def __init__(self, max_age=5, iou_threshold=0.6):
         self.iou_threshold = iou_threshold
         self.max_age = max_age
         self.trackers = []
@@ -86,8 +87,8 @@ class SimpleMotTracker(object):
                 self.trackers.pop(i)
 
         # simply return all trackers
-        return np.array(trk.get_bbox() for trk in self.trackers)
-
+        return np.array([trk.get_bbox() for trk in self.trackers])
+    
     def iou(self, bb_gt, bb_test):
         bb_gt = np.expand_dims(bb_gt, 0)
         bb_test = np.expand_dims(bb_test, 1)

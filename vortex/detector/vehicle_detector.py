@@ -9,8 +9,8 @@ class VehicleDetector(object):
     def __init__(self, onnx_path, label_file):
         self.onnx_session = onnxruntime.InferenceSession(onnx_path)
         self.input_names, self.output_names = self.get_io_names(self.onnx_session)
-        print('input names: ', self.input_names)
-        print('output_names: ', self.output_names)
+        # print('input names: ', self.input_names)
+        # print('output_names: ', self.output_names)
         # define MODEL PARAMETERS
         self.class_names = self.load_class_names(label_file)
         self.image_size = (608, 608)
@@ -20,8 +20,8 @@ class VehicleDetector(object):
     def detect(self, image):
         inputs, ratio, dw, dh = self.preprocess(image)
         scores_array, boxes_array = self.forward(inputs)
-        boxes = self.decode_outputs(boxes_array, scores_array, ratio, dw, dh)
-        return boxes
+        boxes, scores, labels = self.decode_outputs(boxes_array, scores_array, ratio, dw, dh)
+        return boxes, scores, labels
 
     def detect_image_file(self, image_path):
         """
@@ -32,8 +32,8 @@ class VehicleDetector(object):
             return
         inputs, ratio, dw, dh = self.preprocess(img0)
         scores_array, boxes_array = self.forward(inputs)
-        boxes = self.decode_outputs(boxes_array, scores_array, ratio, dw, dh)
-        image = self.draw_boxes(img0, boxes)
+        boxes, scores, labels = self.decode_outputs(boxes_array, scores_array, ratio, dw, dh)
+        image = self.visualize(img0, boxes, scores, labels)
         # cv2.imshow('image', image)
         # cv2.waitKey(0)
         cv2.imwrite('image.jpg', image)
@@ -54,14 +54,15 @@ class VehicleDetector(object):
                 break
             inputs, ratio, dw, dh = self.preprocess(frame)
             scores_array, boxes_array = self.forward(inputs)
-            boxes = self.decode_outputs(boxes_array, scores_array, ratio, dw, dh)
-            image = self.draw_boxes(frame, boxes)
+            boxes, scores, labels = self.decode_outputs(boxes_array, scores_array, ratio, dw, dh)
+            image = self.visualize(frame, boxes, scores, labels)
             cv2.imshow('surveillance', image)
             cv2.waitKey(1)
 
-    def draw_boxes(self, image, boxes):
-        for box in boxes:
-            xmin, ymin, xmax, ymax, score, name = box
+    def visualize(self, image, boxes, scores, labels):
+        for box, score, label in zip(boxes, scores, labels):
+            xmin, ymin, xmax, ymax = box
+            name = self.get_class_name(int(label))
             cv2.rectangle(image, (xmin, ymin), (xmax, ymax), color=(0, 255, 0), thickness=1)
             cv2.putText(image, '{}:{:.02f}'.format(name, score), (xmin, ymin),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
@@ -133,6 +134,8 @@ class VehicleDetector(object):
         outputs = outputs[0]
         nboxes = outputs.shape[0]
         out_boxes = []
+        out_scores = []
+        out_labels = []
         for i in range(nboxes):
             xmin = int((outputs[i, 0] - dw) / ratio[0])
             ymin = int((outputs[i, 1] - dh) / ratio[1])
@@ -140,10 +143,21 @@ class VehicleDetector(object):
             ymax = int((outputs[i, 3] - dh) / ratio[1])
             score = outputs[i, 4]
             label = int(outputs[i, 5])
-            class_name = self.class_names[label]
-            out_boxes.append([xmin, ymin, xmax, ymax, score, class_name])
+            # out_boxes.append([xmin, ymin, xmax, ymax, score, label])
+            out_boxes.append([xmin, ymin, xmax, ymax])
+            out_scores.append(score)
+            out_labels.append(label)
         out_boxes = np.array(out_boxes)
-        return out_boxes
+        out_scores = np.array(out_scores)
+        out_labels = np.array(out_labels)
+        return out_boxes, out_scores, out_labels
+
+    def get_class_name(self, label):
+        label = int(label)
+        if label < len(self.class_names) and label > 0:
+            return self.class_names[label]
+        else:
+            return 'None'
     
     def xywh2xyxy(self, x):
         # Convert nx4 boxes from [x, y, w, h] to [x1, y1, x2, y2] where xy1=top-left, xy2=bottom-right
